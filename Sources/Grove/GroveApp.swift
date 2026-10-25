@@ -48,7 +48,9 @@ struct ContentView: View {
             ring
 
             if model.mode == .pomodoro && !model.isActive {
-                Stepper("\(model.minutes) min", value: $model.minutes, in: 1...180, step: 5)
+                Stepper("\(model.minutes) min",
+                        onIncrement: { model.minutes = stepMinutes(model.minutes, up: true) },
+                        onDecrement: { model.minutes = stepMinutes(model.minutes, up: false) })
                     .foregroundStyle(Color.mist)
             }
 

@@ -30,6 +30,11 @@ import Testing
     #expect(wav.count == 44 + 2 * (960 * 3 + 1120 + 5600)) // header + 16-bit samples of each note
 }
 
+@Test func minuteStepperSnapsToFives() {
+    #expect([1, 5, 7, 175, 180].map { stepMinutes($0, up: true) } == [5, 10, 10, 180, 180])
+    #expect([1, 5, 7, 10].map { stepMinutes($0, up: false) } == [1, 1, 5, 5])
+}
+
 @Test func formatting() {
     #expect(formatDuration(1500) == "25:00")
     #expect(formatDuration(3725) == "1:02:05")

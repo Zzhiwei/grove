@@ -57,3 +57,8 @@ public func formatTotal(_ t: TimeInterval) -> String {
     let m = Int(t) / 60
     return m >= 60 ? "\(m / 60)h \(m % 60)m" : "\(m)m"
 }
+
+/// Pomodoro length stepper: snaps to multiples of 5 within 1...180 (1 → 5 → 10, and back 10 → 5 → 1).
+public func stepMinutes(_ m: Int, up: Bool) -> Int {
+    up ? min(180, (m / 5 + 1) * 5) : max(1, (m - 1) / 5 * 5)
+}
