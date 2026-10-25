@@ -28,7 +28,7 @@ No linter is configured.
 
 Key behaviors that span files:
 - Timer time is derived from dates (`accumulated + now - runningSince`), not tick counting, so it stays correct across sleep. The 1s `Timer.publish` only refreshes `now` and checks pomodoro completion.
-- A session is recorded on Stop or pomodoro completion; early-stopped pomodoros record the partial time. Stats attribute a session entirely to its start time.
+- A session is recorded on Stop or pomodoro completion; early-stopped pomodoros record the partial time; sessions under 30s are discarded. Stats attribute a session entirely to its start time.
 - Persistence: JSON at `~/Library/Application Support/Grove/data.json` (atomic writes). An undecodable file is renamed to `data.json.corrupt-<ts>` rather than overwritten. Pomodoro length is in `UserDefaults` key `minutes`.
 - Active (unsaved) sessions are lost on quit.
 - Pomodoro completion plays a synthesized tune (`celebrationWAV()` in GroveCore, generated in memory — no audio assets) and posts a `UNUserNotificationCenter` banner. Notifications are skipped when there is no app bundle (`swift run`), so test them via `build.sh`.

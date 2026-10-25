@@ -81,11 +81,11 @@ final class Model: ObservableObject {
         runningSince = nil
     }
 
-    /// Ends the session and records the focused time (partial pomodoros count too).
+    /// Ends the session and records the focused time if at least 30s (partial pomodoros count too).
     func stop() {
         now = Date()
         let seconds = mode == .pomodoro ? min(elapsed, target) : elapsed
-        if let start = sessionStart, seconds >= 1 {
+        if let start = sessionStart, seconds >= 30 { // shorter runs are treated as accidental starts
             sessions.append(Session(tag: tag, start: start, seconds: seconds))
             save()
             scheduleSync()
