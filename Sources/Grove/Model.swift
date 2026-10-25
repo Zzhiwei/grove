@@ -1,6 +1,15 @@
 import AppKit
 import Combine
 import GroveCore
+import UserNotifications
+
+/// Shows banners even though the menu-bar app counts as frontmost.
+final class BannerDelegate: NSObject, UNUserNotificationCenterDelegate {
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .list])
+    }
+}
 
 enum Mode: String, CaseIterable { case pomodoro = "Pomodoro", stopwatch = "Stopwatch" }
 
@@ -21,6 +30,10 @@ final class Model: ObservableObject {
     @Published private(set) var now = Date()
     private var sessionStart: Date?
     private var ticker: AnyCancellable?
+    private let celebration = NSSound(data: celebrationWAV())
+    private let bannerDelegate = BannerDelegate()
+    // UNUserNotificationCenter crashes without an app bundle (e.g. `swift run`).
+    private let notifications = Bundle.main.bundleIdentifier != nil ? UNUserNotificationCenter.current() : nil
 
     private let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("Grove/data.json")
@@ -29,6 +42,8 @@ final class Model: ObservableObject {
 
     init() {
         load()
+        notifications?.delegate = bannerDelegate
+        notifications?.requestAuthorization(options: [.alert]) { _, _ in }
         ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect().sink { [weak self] _ in
             self?.tick()
         }
@@ -72,9 +87,19 @@ final class Model: ObservableObject {
         guard isRunning else { return }
         now = Date()
         if mode == .pomodoro && elapsed >= target {
+            let finishedTag = tag
             stop()
-            NSSound(named: "Glass")?.play()
+            celebrate(tag: finishedTag)
         }
+    }
+
+    private func celebrate(tag: String) {
+        celebration?.stop()
+        celebration?.play()
+        let content = UNMutableNotificationContent()
+        content.title = "Pomodoro complete 🌳"
+        content.body = "\(minutes) min of \(tag) focus. Time for a break."
+        notifications?.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
     }
 
     func addTag(_ name: String) {
