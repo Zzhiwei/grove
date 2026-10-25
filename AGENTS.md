@@ -20,8 +20,10 @@ No linter is configured.
 
 ## Architecture
 
-- `Sources/GroveCore` — pure, UI-free logic: `Session`, `StatRange` (today / 7 days / past calendar month), `totals()` aggregation, duration formatting. Everything testable lives here; `Tests/GroveCoreTests` only tests this target.
+- `Sources/GroveCore` — pure, UI-free logic: `Session`, `StatRange` (today / 7 days / past calendar month), `totals()` aggregation, duration formatting, sync merge rules and Supabase row/date coding. Everything testable lives here; `Tests/GroveCoreTests` only tests this target.
 - `Sources/Grove/Model.swift` — single `@MainActor ObservableObject` holding both persisted data (tags, sessions) and live timer state.
+- `Sources/Grove/Cloud.swift` — Supabase client over plain `URLSession` (no SDK): email+password auth, token refresh, refresh token in Keychain, PostgREST insert/select with paging.
+- `supabase/migrations/` — schema + RLS for `sessions` and `tags`. Applied by pasting into the dashboard SQL Editor (no CLI link / access token).
 - `Sources/Grove/GroveApp.swift` — `@main` app, `MenuBarExtra(.window)` scene, all views, and the forest color palette (`Color.forestNight`, `.pine`, `.moss`, `.fern`, `.bark`, `.mist`). Reuse these colors for new UI.
 
 Key behaviors that span files:
@@ -31,6 +33,16 @@ Key behaviors that span files:
 - Active (unsaved) sessions are lost on quit.
 - Pomodoro completion plays a synthesized tune (`celebrationWAV()` in GroveCore, generated in memory — no audio assets) and posts a `UNUserNotificationCenter` banner. Notifications are skipped when there is no app bundle (`swift run`), so test them via `build.sh`.
 
+Cloud sync (Supabase project `ryaqrgzgnhbiybtsogln`):
+- Local JSON stays the source of truth; sync is push-then-pull, on launch, after each change, and every 5 min.
+- Sessions are append-only with device-generated UUIDs, so upload uses `resolution=ignore-duplicates` and needs no conflict handling. Each `Session` has a local `synced` flag.
+- Tags sync with a `deleted` tombstone; un-uploaded local changes live in `pendingTags` (name → deleted). Merge rules are in `GroveCore/Sync.swift` (`mergeSessions`, `mergeTags`).
+- Only the publishable key ships in the app; never use a secret/service_role key. Data access relies on RLS (`auth.uid() = user_id`).
+- Free-plan project created after 2026-06-03 can't customize auth email templates, hence password sign-in rather than an email OTP code.
+- Sign-up sends a confirmation link; it redirects to the project's Site URL (default `localhost:3000`) after confirming, so a broken page there is harmless. Built-in SMTP is heavily rate-limited — repeated sign-ups return "For security purposes, you can only request this after N seconds".
+- Ad-hoc signing changes the code signature every build, so macOS may re-prompt for Keychain access after rebuilding.
+- Supabase skills (`supabase`, `supabase-postgres-best-practices`) are installed in `.claude/skills/`; load them before touching auth, schema, or RLS. Schema changes go in a new file under `supabase/migrations/`.
+
 ## Network note
 
-On the author's machine, GitHub HTTPS pushes may need the local proxy: `git -c http.proxy=http://127.0.0.1:8888 push`.
+On the author's machine, GitHub git operations need the local proxy, scoped to github.com only: `git -c http.https://github.com.proxy=http://127.0.0.1:8888 push`. Don't proxy other traffic (Supabase, npm).

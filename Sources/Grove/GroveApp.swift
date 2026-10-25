@@ -29,6 +29,9 @@ struct ContentView: View {
     @EnvironmentObject var model: Model
     @State private var range: StatRange = .today
     @State private var newTag = ""
+    @State private var showAccount = false
+    @State private var email = ""
+    @State private var password = ""
 
     var body: some View {
         VStack(spacing: 14) {
@@ -54,6 +57,9 @@ struct ContentView: View {
 
             Divider().overlay(Color.moss.opacity(0.4))
             stats
+
+            Divider().overlay(Color.moss.opacity(0.4))
+            account
 
             HStack {
                 Spacer()
@@ -134,6 +140,56 @@ struct ContentView: View {
             .disabled(!model.isActive)
         }
         .controlSize(.large)
+    }
+
+    private var account: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                showAccount.toggle()
+            } label: {
+                HStack {
+                    Image(systemName: model.cloud.signedIn ? "icloud.fill" : "icloud.slash")
+                    Text(model.cloud.signedIn ? (model.cloud.email ?? "Signed in") : "Sync to cloud")
+                    Spacer()
+                    if model.syncing { ProgressView().controlSize(.mini) }
+                    Image(systemName: showAccount ? "chevron.up" : "chevron.down")
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.mist)
+
+            if !model.cloudStatus.isEmpty {
+                Text(model.cloudStatus).font(.caption2).foregroundStyle(Color.fern.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true) // wrap long errors instead of truncating
+            }
+
+            if showAccount {
+                if model.cloud.signedIn {
+                    HStack {
+                        Button("Sync Now") { model.scheduleSync() }.disabled(model.syncing)
+                        Spacer()
+                        Button("Sign Out") { model.signOut() }
+                    }
+                } else {
+                    TextField("Email", text: $email).textFieldStyle(.roundedBorder).textContentType(.username)
+                    SecureField("Password", text: $password).textFieldStyle(.roundedBorder).textContentType(.password)
+                    HStack {
+                        Button("Sign In") { submit(create: false) }.buttonStyle(.borderedProminent)
+                        Button("Create Account") { submit(create: true) }
+                    }
+                    .disabled(email.isEmpty || password.count < 6 || model.syncing)
+                }
+            }
+        }
+        .font(.caption)
+    }
+
+    private func submit(create: Bool) {
+        Task {
+            await model.signIn(email: email.trimmingCharacters(in: .whitespaces), password: password, create: create)
+            if model.cloud.signedIn { password = "" }
+        }
     }
 
     private var stats: some View {

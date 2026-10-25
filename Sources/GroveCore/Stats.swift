@@ -1,14 +1,28 @@
 import Foundation
 
 public struct Session: Codable, Equatable {
+    public let id: UUID
     public let tag: String
     public let start: Date
     public let seconds: TimeInterval
+    public var synced: Bool
 
-    public init(tag: String, start: Date, seconds: TimeInterval) {
+    public init(id: UUID = UUID(), tag: String, start: Date, seconds: TimeInterval, synced: Bool = false) {
+        self.id = id
         self.tag = tag
         self.start = start
         self.seconds = seconds
+        self.synced = synced
+    }
+
+    // Files saved before cloud sync have no id/synced.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        tag = try c.decode(String.self, forKey: .tag)
+        start = try c.decode(Date.self, forKey: .start)
+        seconds = try c.decode(TimeInterval.self, forKey: .seconds)
+        synced = try c.decodeIfPresent(Bool.self, forKey: .synced) ?? false
     }
 }
 
