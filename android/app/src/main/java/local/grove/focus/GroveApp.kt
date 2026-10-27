@@ -6,11 +6,16 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import java.io.File
+import kotlinx.coroutines.MainScope
 import local.grove.focus.core.celebrationPcm
 
-/** Holds the single [Store] shared by the UI and the alarm / notification receiver. */
+/** Holds the single [Store] (and cloud sync) shared by the UI and the alarm / notification receiver. */
 class GroveApp : Application() {
-    val store by lazy { Store(File(filesDir, "data.json")) { TimerNotifications.sync(this, it) } }
+    val store: Store by lazy {
+        Store(File(filesDir, "data.json"), onUnsent = { cloudSync.schedule() }) { TimerNotifications.sync(this, it) }
+    }
+    val cloud by lazy { Cloud() }
+    val cloudSync: CloudSync by lazy { CloudSync(store, cloud, MainScope()) }
 
     override fun onCreate() {
         super.onCreate()
@@ -21,6 +26,8 @@ class GroveApp : Application() {
 }
 
 val Context.store get() = (applicationContext as GroveApp).store
+val Context.cloudSync get() = (applicationContext as GroveApp).cloudSync
+val Context.cloud get() = (applicationContext as GroveApp).cloud
 
 private val tune by lazy { celebrationPcm() }
 

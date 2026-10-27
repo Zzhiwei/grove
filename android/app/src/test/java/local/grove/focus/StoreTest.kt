@@ -3,7 +3,11 @@ package local.grove.focus
 import java.io.File
 import java.nio.file.Files
 import java.time.Instant
+import kotlinx.coroutines.runBlocking
+import local.grove.focus.core.RemoteSession
+import local.grove.focus.core.RemoteTag
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -70,5 +74,72 @@ class StoreTest {
         store.start(t0)
         store.pause(t0.plusSeconds(5))
         assertEquals(listOf(false, true, false), seen)
+    }
+
+    private class FakeRemote(
+        var sessions: List<RemoteSession> = emptyList(),
+        var tags: List<RemoteTag> = emptyList(),
+    ) : Remote {
+        val pushedSessions = mutableListOf<RemoteSession>()
+        val pushedTags = mutableListOf<RemoteTag>()
+        override suspend fun pushSessions(rows: List<RemoteSession>) { pushedSessions += rows }
+        override suspend fun pushTags(rows: List<RemoteTag>) { pushedTags += rows }
+        override suspend fun pullSessions() = sessions + pushedSessions
+        override suspend fun pullTags() = tags
+    }
+
+    @Test fun syncPushesUnsentAndMergesRemote() = runBlocking {
+        val store = Store(file)
+        store.start(t0)
+        store.stop(t0.plusSeconds(60))
+        store.addTag("Art")
+        val other = RemoteSession("0e5e1e6a-0000-4000-8000-000000000001", "Study", t0, 90.0)
+        val remote = FakeRemote(sessions = listOf(other), tags = listOf(RemoteTag("Reading", true), RemoteTag("Gym", false)))
+        store.sync(remote)
+        assertEquals(1, remote.pushedSessions.size)
+        assertEquals(listOf(RemoteTag("Art", false)), remote.pushedTags)
+        assertTrue(store.data.sessions.all { it.synced })
+        assertEquals(2, store.data.sessions.size)
+        assertEquals(listOf("Focus", "Study", "Art", "Gym"), store.data.tags) // Reading deleted on another device
+        assertEquals(emptyMap<String, Boolean>(), store.data.pendingTags)
+    }
+
+    @Test fun syncReselectsDeletedTagWhenIdle() = runBlocking {
+        val store = Store(file)
+        store.selectTag("Reading")
+        store.sync(FakeRemote(tags = listOf(RemoteTag("Reading", true))))
+        assertEquals("Focus", store.data.timer.tag)
+    }
+
+    @Test fun failedPushKeepsDataUnsent() = runBlocking {
+        val store = Store(file)
+        store.start(t0)
+        store.stop(t0.plusSeconds(60))
+        val failing = object : Remote by FakeRemote() {
+            override suspend fun pushSessions(rows: List<RemoteSession>) = throw java.io.IOException("offline")
+        }
+        assertTrue(runCatching { store.sync(failing) }.isFailure)
+        assertFalse(store.data.sessions.single().synced)
+    }
+
+    @Test fun signOutMarksEverythingUnsent() = runBlocking {
+        val store = Store(file)
+        store.start(t0)
+        store.stop(t0.plusSeconds(60))
+        store.sync(FakeRemote())
+        store.signedOut()
+        assertFalse(store.data.sessions.single().synced)
+        store.signedIn()
+        assertEquals(mapOf("Focus" to false, "Study" to false, "Reading" to false), store.data.pendingTags)
+    }
+
+    @Test fun unsentChangesTriggerSync() {
+        var triggers = 0
+        val store = Store(file, onUnsent = { triggers++ })
+        store.setMinutes(30) // timer only
+        store.addTag("Art")
+        store.start(t0)
+        store.stop(t0.plusSeconds(10)) // too short: nothing recorded
+        assertEquals(1, triggers)
     }
 }

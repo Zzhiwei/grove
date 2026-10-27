@@ -60,12 +60,14 @@ Each ends with `./gradlew test` passing and a commit.
 1. ✅ (`8686b69`) **Scaffold + core.** `brew install gradle` once to generate the wrapper; create `android/` (Compose app template, versions = latest stable AGP / Kotlin / Compose BOM / supabase-kt at time of writing). Port `core/` with tests. Create `shared/fixtures/` (merge-tags cases, merge-sessions, Supabase timestamp with and without fraction, formatting, stepMinutes) and switch the macOS tests in `macos/Tests/` to read the same files.
 2. ✅ (`43124ef`) **Timer + UI.** `TimerState` with tests: 30 s minimum, pomodoro capped at target, elapsed from dates, pause/resume, `complete()` idempotent. `Store` persistence (atomic write via temp file + rename; unreadable file renamed to `data.json.corrupt-<ts>`, as on macOS). Compose screen: mode switch, ring, minutes stepper, tag picker/add/remove, Start/Pause/Resume, Stop & Save, stats with bars. In-app completion plays tune.
 3. ✅ **Background.** Ongoing notification, exact alarm scheduled on start/resume and cancelled on pause/stop, `TimerReceiver` for the alarm and notification actions. Test on the emulator with the app swiped away.
-4. ⏭ next — **Cloud sync.** Sign up / sign in / sign out, push unsent sessions (`upsert`, ignore duplicates on `id`), push `pendingTags` (upsert on `user_id,name`), pull all rows paged by 1000, merge with `core/Sync.kt`. Same status texts as macOS.
+4. 🔶 code done, real-account sync not yet verified — **Cloud sync.** Sign up / sign in / sign out, push unsent sessions (`upsert`, ignore duplicates on `id`), push `pendingTags` (upsert on `user_id,name`), pull all rows paged by 1000, merge with `core/Sync.kt`. Same status texts as macOS.
 5. **Polish + docs.** Adaptive app icon (ring + tree, forest palette), `android/README.md`, root README platform table, AGENTS.md Android section. Build APK, install on phone.
 
 Milestone 2 verified on the emulator: force-stop mid-pomodoro → reopened still running; 5-min pomodoro completed by itself, session saved, stats updated. Not yet verified: tune audibly (emulator ran with `-no-audio`), tag add/remove via the UI (unit-tested only).
 
 Milestone 3 verified on the emulator: permission prompt shown; ongoing notification counts down (pomodoro) / up (stopwatch); app process killed → exact alarm started a new process, recorded the 60 s session, posted "Pomodoro complete 🌳"; notification Pause → "Paused · 00:26", Resume, Stop & Save → session recorded, notification and alarm removed. Notification icon is still the default Android one until milestone 5.
+
+Milestone 4: sync logic unit-tested with a fake server (push unsent, merge remote sessions/tags, deleted tag reselection, failed push keeps data unsent, sign-out/in). On the emulator a sign-in with a made-up account got Supabase's "Invalid login credentials", so network + auth work. Not yet verified: sign-in with a real account and sessions/tags actually syncing with the Mac.
 
 ## Commands (once scaffolded, run from `android/`)
 
@@ -84,6 +86,8 @@ adb shell am start -W -n local.grove.focus/.MainActivity    # after ./gradlew in
 adb exec-out screencap -p > /tmp/grove.png                  # screen is 1080x2400; adb shell input tap X Y
 adb shell run-as local.grove.focus cat files/data.json      # saved data
 ```
+
+On the author's network (Zscaler) the emulator needs the local proxy, set once (persists in the emulator's data): `adb shell settings put global http_proxy 10.0.2.2:8888` (10.0.2.2 = the Mac; switch to 8889 if needed; `:0` to clear). The emulator's `-http-proxy` flag timed out.
 
 If `adb` says "unauthorized" or can't start its server, Android Studio is running its own adb on port 5037; use that one (`adb devices` again) or quit Android Studio.
 

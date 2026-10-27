@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -43,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,6 +61,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,6 +85,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge(SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)) // light status bar icons on the dark forest background
         setContent { GroveTheme { GroveScreen(store, this) } }
     }
+
+    override fun onStart() {
+        super.onStart()
+        cloudSync.schedule() // sync when the app comes to the front
+
+    }
 }
 
 @Composable
@@ -92,6 +102,12 @@ fun GroveScreen(store: Store, ctx: Context) {
             now = Instant.now()
             store.completeIfDue(now)?.let { TimerNotifications.celebrate(ctx, it, store.data.timer.minutes) }
             delay(1000)
+        }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5 * 60_000L) // periodic sync while the app is open
+            ctx.cloudSync.schedule()
         }
     }
     val data = store.data
@@ -138,6 +154,54 @@ fun GroveScreen(store: Store, ctx: Context) {
 
         HorizontalDivider(color = Moss.copy(alpha = 0.4f))
         Stats(data.sessions.let { sessions -> { range: StatRange -> totals(sessions, range.start(now)) } })
+
+        HorizontalDivider(color = Moss.copy(alpha = 0.4f))
+        Account(ctx.cloud, ctx.cloudSync)
+    }
+}
+
+@Composable
+private fun Account(cloud: Cloud, sync: CloudSync) {
+    cloud.status.collectAsState().value // recompose on sign-in / sign-out / expiry
+    var open by rememberSaveable { mutableStateOf(false) }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextButton({ open = !open }, Modifier.fillMaxWidth()) {
+            Text(
+                if (cloud.signedIn) "☁ ${cloud.email ?: "Signed in"}" else "☁ Sync to cloud",
+                color = Mist, modifier = Modifier.weight(1f),
+            )
+            if (sync.syncing) CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
+            Text(if (open) "  ▲" else "  ▼", color = Mist)
+        }
+        if (sync.status.isNotEmpty()) Text(sync.status, color = Fern.copy(alpha = 0.8f), fontSize = 12.sp)
+        if (!open) return@Column
+        if (cloud.signedIn) {
+            Row {
+                OutlinedButton({ sync.schedule() }, enabled = !sync.syncing) { Text("Sync Now") }
+                Spacer(Modifier.weight(1f))
+                TextButton({ sync.signOut() }) { Text("Sign Out") }
+            }
+        } else {
+            OutlinedTextField(
+                email, { email = it }, Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Email") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+            )
+            OutlinedTextField(
+                password, { password = it }, Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("Password") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+            )
+            val ready = email.isNotBlank() && password.length >= 6 && !sync.syncing
+            fun submit(create: Boolean) = sync.signIn(email.trim(), password, create).invokeOnCompletion {
+                if (cloud.signedIn) password = ""
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button({ submit(create = false) }, enabled = ready) { Text("Sign In") }
+                OutlinedButton({ submit(create = true) }, enabled = ready) { Text("Create Account") }
+            }
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Granted at install for sideloaded apps; Play would require an alarm-clock use case -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
