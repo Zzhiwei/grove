@@ -12,7 +12,7 @@ Port the macOS app (`macos/`) to Android with the same features and behavior. Pe
 | Distribution | Sideload a debug-signed APK |
 | Shared logic | Rewrite `GroveCore` in Kotlin; shared JSON test fixtures in `shared/fixtures/` that both test suites read |
 | Cloud | `supabase-kt` (auth + postgrest), same Supabase project and tables |
-| Storage | JSON file in app storage (`filesDir/data.json`) + `SharedPreferences` for settings; Supabase sync on top |
+| Storage | JSON file in app storage (`filesDir/data.json`): tags, sessions, pending tag changes, live timer incl. pomodoro length; Supabase sync on top |
 | Min Android | 16 (`minSdk 36`); `compileSdk`/`targetSdk 37` (installed SDK) |
 | Language / UI / build | Kotlin, Jetpack Compose, Gradle (Android Studio's bundled JDK) |
 

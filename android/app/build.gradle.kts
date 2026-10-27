@@ -18,6 +18,7 @@ android {
 
     buildFeatures { compose = true }
 
+    testOptions.unitTests.isReturnDefaultValues = true // android.util.Log etc. are no-ops in JVM tests
     testOptions.unitTests.all {
         it.systemProperty("fixtures", rootProject.file("../shared/fixtures").path)
         it.inputs.dir(rootProject.file("../shared/fixtures")) // rerun tests when fixtures change
