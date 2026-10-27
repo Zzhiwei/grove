@@ -1,0 +1,6 @@
+{"duration": [{"seconds": 1500, "text": "25:00"}, {"seconds": 3725, "text": "1:02:05"}, {"seconds": 59.9, "text": "00:59"}, {"seconds": 0, "text": "00:00"}],
+ "total": [{"seconds": 5400, "text": "1h 30m"}, {"seconds": 59, "text": "0m"}, {"seconds": 3600, "text": "1h 0m"}],
+ "step": [{"minutes": 1, "up": true, "expected": 5}, {"minutes": 5, "up": true, "expected": 10}, {"minutes": 7, "up": true, "expected": 10},
+          {"minutes": 175, "up": true, "expected": 180}, {"minutes": 180, "up": true, "expected": 180},
+          {"minutes": 1, "up": false, "expected": 1}, {"minutes": 5, "up": false, "expected": 1}, {"minutes": 7, "up": false, "expected": 5},
+          {"minutes": 10, "up": false, "expected": 5}]}

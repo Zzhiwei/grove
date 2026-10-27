@@ -5,7 +5,8 @@ This file provides guidance to AI coding agents (Claude Code, etc.) when working
 Grove is a Pomodoro / stopwatch app. Repo layout:
 
 - `macos/` — macOS menu-bar-only app (SwiftUI `MenuBarExtra`, macOS 13+). Built with SwiftPM and the Xcode Command Line Tools — there is no `.xcodeproj`.
-- Root — files shared across platforms: `supabase/` (backend schema), `README.md`, this file, `.claude/skills/`. An Android app is planned as a sibling folder; keep platform-specific code out of the root.
+- `android/` — Android port in progress (Kotlin, Jetpack Compose, Gradle; Android 16+). Plan and decisions: `docs/android-plan.md`. Pure logic lives in `app/src/main/java/local/grove/focus/core/` (the Kotlin twin of `GroveCore`).
+- Root — files shared across platforms: `supabase/` (backend schema), `shared/fixtures/` (JSON test cases both test suites run — change a shared rule on both platforms and add a case here), `docs/`, `README.md`, this file, `.claude/skills/`. Keep platform-specific code out of the root.
 
 ## Commands (macOS, run from `macos/`)
 
@@ -20,6 +21,15 @@ open build/Grove.app                          # run; quit via the Quit button in
 `swift run Grove` also works, but the `LSUIElement` (no Dock icon) setting only applies inside the `.app` bundle — `build.sh` writes the `Info.plist`.
 
 No linter is configured.
+
+## Commands (Android, run from `android/`)
+
+```sh
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"   # Android Studio's bundled JDK
+./gradlew test                 # JVM unit tests (JUnit 4), incl. shared fixtures
+./gradlew assembleDebug        # → app/build/outputs/apk/debug/app-debug.apk
+./gradlew installDebug         # install on running emulator / connected phone
+```
 
 ## Architecture (macOS; paths relative to `macos/`)
 
@@ -51,3 +61,5 @@ Cloud sync (Supabase project `ryaqrgzgnhbiybtsogln`):
 ## Network note
 
 On the author's machine, GitHub git operations need the local proxy, scoped to github.com only: `git -c http.https://github.com.proxy=http://127.0.0.1:8888 push`. Don't proxy other traffic (Supabase, npm).
+
+The author's network has Zscaler TLS inspection. Java doesn't trust its CA, so `~/.gradle/gradle.properties` points Gradle at `~/.gradle/cacerts-zscaler.jks` (the JDK's default CAs + the Zscaler CA). Machine setup, not in the repo; if Gradle reports "plugin was not found" or PKIX errors, check that file.

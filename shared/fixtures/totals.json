@@ -1,0 +1,9 @@
+{"since": "2026-10-01T00:00:00Z",
+ "sessions": [
+   {"tag": "Work", "start": "2026-10-20T09:00:00Z", "seconds": 1500},
+   {"tag": "Read", "start": "2026-10-20T10:00:00Z", "seconds": 600},
+   {"tag": "Work", "start": "2026-10-01T00:00:00Z", "seconds": 300},
+   {"tag": "Art", "start": "2026-10-21T10:00:00Z", "seconds": 600},
+   {"tag": "Work", "start": "2026-09-30T23:59:59Z", "seconds": 9999}
+ ],
+ "expected": [{"tag": "Work", "seconds": 1800}, {"tag": "Art", "seconds": 600}, {"tag": "Read", "seconds": 600}]}

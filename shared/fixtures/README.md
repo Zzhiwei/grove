@@ -1,0 +1,1 @@
+Test cases for the shared rules (sync merge, stats, formatting, Supabase timestamps). Both `macos/Tests` and `android/app/src/test` run them, so the platforms can't drift apart. Add a case here when a rule changes.

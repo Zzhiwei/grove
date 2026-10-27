@@ -1,0 +1,13 @@
+[
+  {"name": "server tombstones and pending changes",
+   "local": ["Focus", "Gone", "Mine"],
+   "server": [{"name": "Gone", "deleted": true}, {"name": "New", "deleted": false}, {"name": "Undo", "deleted": false}],
+   "pending": {"Mine": false, "Undo": true},
+   "expected": ["Focus", "Mine", "New"]},
+  {"name": "pending re-add beats server tombstone",
+   "local": ["A"], "server": [{"name": "A", "deleted": true}], "pending": {"A": false}, "expected": ["A"]},
+  {"name": "pending delete beats server tag",
+   "local": ["A", "B"], "server": [{"name": "A", "deleted": false}], "pending": {"A": true}, "expected": ["B"]},
+  {"name": "server tags appended once",
+   "local": ["A"], "server": [{"name": "A", "deleted": false}, {"name": "B", "deleted": false}], "pending": {}, "expected": ["A", "B"]}
+]
