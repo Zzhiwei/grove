@@ -10,7 +10,7 @@ The Grove focus timer as an Android app, for personal use (sideloaded; not on Go
 
 ## Requirements
 
-Android 16 or later. To build: Android Studio (for the SDK and its bundled JDK); no Android Studio needed after installing it.
+Android 16 or later. Building needs the Android SDK and JDK that come with Android Studio; the IDE itself never has to be opened.
 
 ## Build & install
 
