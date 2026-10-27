@@ -60,6 +60,7 @@ Cloud sync (Supabase project `ryaqrgzgnhbiybtsogln`):
 
 ## Network note
 
-On the author's machine, GitHub git operations need the local proxy, scoped to github.com only: `git -c http.https://github.com.proxy=http://127.0.0.1:8888 push`. Don't proxy other traffic (Supabase, npm).
+On the author's machine, route all network requests through the local HTTP proxy by default: `http://127.0.0.1:8888`, or `http://127.0.0.1:8889` if 8888 is down or the request fails. If neither answers, ask the author to start one (`zp [port]` in their shell). It bypasses the corporate Zscaler TLS inspection.
 
-The author's network has Zscaler TLS inspection. Java doesn't trust its CA, so `~/.gradle/gradle.properties` points Gradle at `~/.gradle/cacerts-zscaler.jks` (the JDK's default CAs + the Zscaler CA). Machine setup, not in the repo; if Gradle reports "plugin was not found" or PKIX errors, check that file.
+- Shell commands: prefix `HTTPS_PROXY=http://127.0.0.1:8888 HTTP_PROXY=http://127.0.0.1:8888 NO_PROXY=localhost,127.0.0.1`.
+- Already configured (machine-level, not in the repo): this repo's git `http.proxy`, and `~/.gradle/gradle.properties` (proxy 8888, plus a trust store `~/.gradle/cacerts-zscaler.jks` with the Zscaler CA for when Gradle connects directly). To use 8889, edit the port there.
