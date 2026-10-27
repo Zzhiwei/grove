@@ -57,11 +57,13 @@ docs/android-plan.md         this file
 
 Each ends with `./gradlew test` passing and a commit.
 
-1. **Scaffold + core.** `brew install gradle` once to generate the wrapper; create `android/` (Compose app template, versions = latest stable AGP / Kotlin / Compose BOM / supabase-kt at time of writing). Port `core/` with tests. Create `shared/fixtures/` (merge-tags cases, merge-sessions, Supabase timestamp with and without fraction, formatting, stepMinutes) and switch the macOS tests in `macos/Tests/` to read the same files.
-2. **Timer + UI.** `TimerState` with tests: 30 s minimum, pomodoro capped at target, elapsed from dates, pause/resume, `complete()` idempotent. `Store` persistence (atomic write via temp file + rename; unreadable file renamed to `data.json.corrupt-<ts>`, as on macOS). Compose screen: mode switch, ring, minutes stepper, tag picker/add/remove, Start/Pause/Resume, Stop & Save, stats with bars. In-app completion plays tune.
-3. **Background.** Ongoing notification, exact alarm scheduled on start/resume and cancelled on pause/stop, `TimerReceiver` for the alarm and notification actions. Test on the emulator with the app swiped away.
+1. ✅ (`8686b69`) **Scaffold + core.** `brew install gradle` once to generate the wrapper; create `android/` (Compose app template, versions = latest stable AGP / Kotlin / Compose BOM / supabase-kt at time of writing). Port `core/` with tests. Create `shared/fixtures/` (merge-tags cases, merge-sessions, Supabase timestamp with and without fraction, formatting, stepMinutes) and switch the macOS tests in `macos/Tests/` to read the same files.
+2. ✅ (`43124ef`) **Timer + UI.** `TimerState` with tests: 30 s minimum, pomodoro capped at target, elapsed from dates, pause/resume, `complete()` idempotent. `Store` persistence (atomic write via temp file + rename; unreadable file renamed to `data.json.corrupt-<ts>`, as on macOS). Compose screen: mode switch, ring, minutes stepper, tag picker/add/remove, Start/Pause/Resume, Stop & Save, stats with bars. In-app completion plays tune.
+3. ⏭ next — **Background.** Ongoing notification, exact alarm scheduled on start/resume and cancelled on pause/stop, `TimerReceiver` for the alarm and notification actions. Test on the emulator with the app swiped away.
 4. **Cloud sync.** Sign up / sign in / sign out, push unsent sessions (`upsert`, ignore duplicates on `id`), push `pendingTags` (upsert on `user_id,name`), pull all rows paged by 1000, merge with `core/Sync.kt`. Same status texts as macOS.
 5. **Polish + docs.** Adaptive app icon (ring + tree, forest palette), `android/README.md`, root README platform table, AGENTS.md Android section. Build APK, install on phone.
+
+Milestone 2 verified on the emulator: force-stop mid-pomodoro → reopened still running; 5-min pomodoro completed by itself, session saved, stats updated. Not yet verified: tune audibly (emulator ran with `-no-audio`), tag add/remove via the UI (unit-tested only).
 
 ## Commands (once scaffolded, run from `android/`)
 
@@ -71,6 +73,17 @@ export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew assembleDebug      # → app/build/outputs/apk/debug/app-debug.apk
 ./gradlew installDebug       # install on running emulator / connected phone
 ```
+
+Headless emulator check (no Android Studio needed):
+
+```sh
+~/Library/Android/sdk/emulator/emulator -avd Medium_Phone_API_37.0 -no-window -no-audio -no-boot-anim -no-snapshot-save &
+adb shell am start -W -n local.grove.focus/.MainActivity    # after ./gradlew installDebug
+adb exec-out screencap -p > /tmp/grove.png                  # screen is 1080x2400; adb shell input tap X Y
+adb shell run-as local.grove.focus cat files/data.json      # saved data
+```
+
+If `adb` says "unauthorized" or can't start its server, Android Studio is running its own adb on port 5037; use that one (`adb devices` again) or quit Android Studio.
 
 The debug signing key (`~/.android/debug.keystore`) is stable on this Mac, so reinstalling an update keeps the app's data.
 
