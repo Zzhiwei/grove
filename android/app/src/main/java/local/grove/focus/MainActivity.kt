@@ -1,5 +1,8 @@
 package local.grove.focus
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -72,19 +75,22 @@ import local.grove.focus.core.totals
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0) // timer still works if denied
+        }
         enableEdgeToEdge(SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)) // light status bar icons on the dark forest background
-        setContent { GroveTheme { GroveScreen(store) } }
+        setContent { GroveTheme { GroveScreen(store, this) } }
     }
 }
 
 @Composable
-fun GroveScreen(store: Store) {
+fun GroveScreen(store: Store, ctx: Context) {
     var now by remember { mutableStateOf(Instant.now()) }
     // The tick only refreshes `now` and checks pomodoro completion; time itself comes from dates.
     LaunchedEffect(Unit) {
         while (true) {
             now = Instant.now()
-            if (store.completeIfDue(now) != null) playCelebration()
+            store.completeIfDue(now)?.let { TimerNotifications.celebrate(ctx, it, store.data.timer.minutes) }
             delay(1000)
         }
     }

@@ -23,16 +23,21 @@ data class Saved(
     val timer: TimerState = TimerState(),
 )
 
-/** App-wide data (tags, sessions, live timer), persisted to [file] on every change. Main thread only. */
-class Store(private val file: File) {
+/**
+ * App-wide data (tags, sessions, live timer), persisted to [file] on every change. Main thread only.
+ * [onTimerChange] keeps the notification and alarm in step with the timer.
+ */
+class Store(private val file: File, private val onTimerChange: (TimerState) -> Unit = {}) {
     var data by mutableStateOf(load())
         private set
 
     private val timer get() = data.timer
 
     private fun update(change: (Saved) -> Saved) {
+        val before = data.timer
         data = change(data)
         save()
+        if (data.timer != before) onTimerChange(data.timer)
     }
 
     private fun setTimer(t: TimerState) = update { it.copy(timer = t) }

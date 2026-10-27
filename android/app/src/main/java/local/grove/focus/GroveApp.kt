@@ -8,9 +8,16 @@ import android.media.AudioTrack
 import java.io.File
 import local.grove.focus.core.celebrationPcm
 
-/** Holds the single [Store] shared by the UI and (later) the alarm and notification receivers. */
+/** Holds the single [Store] shared by the UI and the alarm / notification receiver. */
 class GroveApp : Application() {
-    val store by lazy { Store(File(filesDir, "data.json")) }
+    val store by lazy { Store(File(filesDir, "data.json")) { TimerNotifications.sync(this, it) } }
+
+    override fun onCreate() {
+        super.onCreate()
+        TimerNotifications.createChannels(this)
+        // Restore notification + alarm after a reboot or app update (an overdue pomodoro's alarm fires at once).
+        TimerNotifications.sync(this, store.data.timer)
+    }
 }
 
 val Context.store get() = (applicationContext as GroveApp).store

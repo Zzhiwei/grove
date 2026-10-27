@@ -61,4 +61,14 @@ class StoreTest {
         assertEquals("Focus", store.data.timer.tag)
         assertTrue(store.data.timer.isActive)
     }
+
+    @Test fun notifiesOnlyOnTimerChanges() {
+        val seen = mutableListOf<Boolean>()
+        val store = Store(file) { seen += it.isRunning }
+        store.addTag("Art") // also selects it: timer changed
+        store.addTag("Art") // already selected: no change
+        store.start(t0)
+        store.pause(t0.plusSeconds(5))
+        assertEquals(listOf(false, true, false), seen)
+    }
 }
