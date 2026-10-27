@@ -2,9 +2,12 @@
 
 This file provides guidance to AI coding agents (Claude Code, etc.) when working with code in this repository.
 
-Grove is a macOS menu-bar-only Pomodoro / stopwatch app (SwiftUI `MenuBarExtra`, macOS 13+). Built with SwiftPM and the Xcode Command Line Tools — there is no `.xcodeproj`.
+Grove is a Pomodoro / stopwatch app. Repo layout:
 
-## Commands
+- `macos/` — macOS menu-bar-only app (SwiftUI `MenuBarExtra`, macOS 13+). Built with SwiftPM and the Xcode Command Line Tools — there is no `.xcodeproj`.
+- Root — files shared across platforms: `supabase/` (backend schema), `README.md`, this file, `.claude/skills/`. An Android app is planned as a sibling folder; keep platform-specific code out of the root.
+
+## Commands (macOS, run from `macos/`)
 
 ```sh
 swift build                                   # debug build
@@ -18,13 +21,15 @@ open build/Grove.app                          # run; quit via the Quit button in
 
 No linter is configured.
 
-## Architecture
+## Architecture (macOS; paths relative to `macos/`)
 
 - `Sources/GroveCore` — pure, UI-free logic: `Session`, `StatRange` (today / 7 days / past calendar month), `totals()` aggregation, duration formatting, sync merge rules and Supabase row/date coding. Everything testable lives here; `Tests/GroveCoreTests` only tests this target.
 - `Sources/Grove/Model.swift` — single `@MainActor ObservableObject` holding both persisted data (tags, sessions) and live timer state.
 - `Sources/Grove/Cloud.swift` — Supabase client over plain `URLSession` (no SDK): email+password auth, token refresh, refresh token in Keychain, PostgREST insert/select with paging.
-- `supabase/migrations/` — schema + RLS for `sessions` and `tags`. Applied by pasting into the dashboard SQL Editor (no CLI link / access token).
+- `../supabase/migrations/` — schema + RLS for `sessions` and `tags`. Applied by pasting into the dashboard SQL Editor (no CLI link / access token).
 - `Sources/Grove/GroveApp.swift` — `@main` app, `MenuBarExtra(.window)` scene, all views, and the forest color palette (`Color.forestNight`, `.pine`, `.moss`, `.fern`, `.bark`, `.mist`). Reuse these colors for new UI.
+- `icon.swift` — draws the app icon (progress ring + `tree.fill`) with AppKit; `build.sh` runs it and packs `AppIcon.icns` via `sips` + `iconutil`. Its palette is a copy of the one above.
+- `docs/` — C4 component diagram (`architecture.drawio` → `c4_architecture.jpg`).
 
 Key behaviors that span files:
 - Timer time is derived from dates (`accumulated + now - runningSince`), not tick counting, so it stays correct across sleep. The 1s `Timer.publish` only refreshes `now` and checks pomodoro completion.
